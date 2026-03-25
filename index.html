@@ -359,7 +359,7 @@ color:#BBBBBB;font-size:2rem;
 /* Notes section */
 .pc-notes{display:grid;grid-template-columns:1fr 1fr;border-bottom:1.5px solid #BBBBBB;}
 .pc-nc{padding:0;}
-.pc-nc.l{border-right:1.5px solid #BBBBBB;}
+.pc-nc.l{border-right:1.5px solid #BBBBBB;}.pc-edit-btn{position:absolute;top:8px;right:8px;background:var(--O);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:.75rem;cursor:pointer;opacity:.7;transition:opacity .2s;z-index:10}.pc-edit-btn:hover{opacity:1}.pc-editing .rc-body{outline:2px dashed var(--O);border-radius:3px;padding:2px 4px}.pc-edit-saved{color:var(--G);font-size:.8rem;margin-left:6px}
 /* Bottom: conservación */
 .pc-bot{display:grid;grid-template-columns:1fr 1fr;}
 .pc-bot-l{border-right:1.5px solid #BBBBBB;}
@@ -663,18 +663,19 @@ function bPC(cat,idx){
     </div>
 
     <!-- Notes two-column -->
-    <div class="pc-notes">
+    <div class="pc-notes" id="pn_${sk}" style="position:relative">
+      <button class="pc-edit-btn" onclick="editPC('${sk}')">✏️ Edit</button>
       <div class="pc-nc l">
         <div class="sec-lbl">MENU DESCRIPTION</div>
-        <div class="rc-body">${X(d.desc||'—')}</div>
+        <div class="rc-body" data-field="desc" data-sk="${sk}">${X(d.desc||'—')}</div>
         <div class="sec-lbl">PLATE / PRESENTATION</div>
-        <div class="rc-body">${X(d.plate||'—')}</div>
+        <div class="rc-body" data-field="plate" data-sk="${sk}">${X(d.plate||'—')}</div>
       </div>
       <div class="pc-nc">
         <div class="sec-lbl">DESCRIPCIÓN DEL MENÚ</div>
-        <div class="rc-body">${X(d.desc||'—')}</div>
+        <div class="rc-body" data-field="desc_es" data-sk="${sk}">${X(d.desc||'—')}</div>
         <div class="sec-lbl">PRESENTACIÓN / PLATO</div>
-        <div class="rc-body">${X(d.plate||'—')}</div>
+        <div class="rc-body" data-field="plate_es" data-sk="${sk}">${X(d.plate||'—')}</div>
       </div>
     </div>
 
@@ -690,8 +691,41 @@ function bPC(cat,idx){
       </div>
     </div>
   </div>`;
+  loadPCEdits(sk);
 }
 
+function editPC(sk){
+  const pn=document.getElementById('pn_'+sk);
+  if(!pn)return;
+  if(pn.classList.contains('pc-editing')){
+    pn.querySelectorAll('[data-field]').forEach(el=>{
+      const field=el.dataset.field;
+      const val=el.innerText.trim();
+      if(field==='desc'||field==='plate'){
+        localStorage.setItem('pl_'+field+'_'+sk, val);
+      }
+    });
+    pn.classList.remove('pc-editing');
+    pn.querySelectorAll('[data-field]').forEach(el=>el.contentEditable='false');
+    const btn=pn.querySelector('.pc-edit-btn');
+    if(btn){btn.textContent='✏️ Edit';const saved=document.createElement('span');saved.className='pc-edit-saved';saved.textContent=' ✓ Saved';btn.after(saved);setTimeout(()=>saved.remove(),2000);}
+  } else {
+    pn.classList.add('pc-editing');
+    pn.querySelectorAll('[data-field]').forEach(el=>{el.contentEditable='true';});
+    const btn=pn.querySelector('.pc-edit-btn');
+    if(btn)btn.textContent='💾 Save';
+  }
+}
+function loadPCEdits(sk){
+  const pn=document.getElementById('pn_'+sk);
+  if(!pn)return;
+  pn.querySelectorAll('[data-field]').forEach(el=>{
+    const field=el.dataset.field;
+    const key=field==='desc_es'?'pl_desc_'+sk:field==='plate_es'?'pl_plate_'+sk:'pl_'+field+'_'+sk;
+    const saved=localStorage.getItem(key);
+    if(saved)el.innerText=saved;
+  });
+}
 function up(e,key,type){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
